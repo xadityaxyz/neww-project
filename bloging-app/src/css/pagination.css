@@ -1,0 +1,17 @@
+.pagination-container {
+    margin-top: 20px;
+   
+    justify-content: center;
+    position: fixed;
+  }
+
+
+  .fixed-bottom-pagination {
+    position: fixed;
+    
+    left: 0;
+    width: 100%;
+    background-color: #333; /* Dark background color */
+    color: white;
+    padding: 10px 20px;
+  }

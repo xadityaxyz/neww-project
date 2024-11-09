@@ -1,0 +1,29 @@
+.navbar-custom {
+    background-color: rgba(0, 0, 0, 0.5); /* Transparent background */
+    position: absolute; /* Position it over the image */
+    width: 100%;
+    top: 0;
+    z-index: 1000; /* Ensure it appears on top of other content */
+    height: 50px; /* Fixed height */
+    display: flex;
+    align-items: center; /* Vertically center the items */
+  }
+  
+  .navbar-custom .navbar-brand,
+  .navbar-custom .nav-link {
+    color: white; /* White text for visibility */
+  }
+  
+  .navbar-custom .nav-link:hover,
+  .navbar-custom .navbar-brand:hover {
+    color: #ddd; /* Lighter color on hover */
+  }
+  
+  .navbar-custom .navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.5); /* Light border for the toggle button */
+  }
+  
+  .navbar-custom .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(255, 255, 255, 0.5)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+  }
+  
