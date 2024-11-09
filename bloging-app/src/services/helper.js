@@ -3,7 +3,7 @@ import { config } from "localforage";
 import { getToken } from "../auth";
 
 
-export const Base_Url = 'http://localhost:9092';
+export const Base_Url = 'http://13.235.132.36:9092';
 export const myAxios = axios.create({
     baseURL: Base_Url // Corrected from baseUrl to baseURL
 });
