@@ -1,0 +1,169 @@
+pipeline {
+    agent any
+
+    environment {
+        // Docker Image Names
+        BACKEND_IMAGE = 'neww-backend-image'
+        FRONTEND_IMAGE = 'neww-frontend-image'
+        
+        // Database Configuration
+        MYSQL_USER = 'aditya'
+        MYSQL_PASSWORD = 'aditya123'
+        MYSQL_HOST = '13.201.97.65'
+        MYSQL_PORT = '3306'
+        MYSQL_DATABASE = 'blog_app_apis'
+    }
+
+    stages {
+        // Stage 1: Code Checkout
+        stage('Checkout Source') {
+            steps {
+                git url: 'https://github.com/xadityaxyz/neww-project.git', branch: 'master'
+            }
+        }
+
+        // Stage 2: Backend Build & Test
+        stage('Build Backend') {
+            steps {
+                dir('Backend-Course-Blogging-Application-main') {
+                    sh 'mvn clean install -DskipTests'
+                    sh 'mvn test'
+                }
+            }
+        }
+        // Stage 3: Frontend Build
+        stage('Build Frontend') {
+            steps {
+                dir('bloging-app') {
+                    sh '''
+                        export CI=false
+                        npm install
+                        npm run build
+                    '''
+                }
+            }
+        }
+
+        // Stage 4: Cleanup Old Docker Resources
+        stage('Cleanup Docker') {
+            steps {
+                sh '''
+                    # Remove old images
+                    docker images | grep -E 'neww-' | awk '{print $1":"$2}' | xargs -r docker rmi -f
+                    
+                    # Cleanup dangling images
+                    docker image prune -f
+                '''
+            }
+        }
+
+        // Stage 5: Build Docker Images
+        stage('Build Docker Images') {
+            steps {
+                // Backend Docker Image
+                dir('Backend-Course-Blogging-Application-main') {
+                    sh "docker build -t ${BACKEND_IMAGE} --no-cache ."
+                }
+                
+                // Frontend Docker Image
+                dir('bloging-app') {
+                    sh "docker build -t ${FRONTEND_IMAGE} --no-cache ."
+                }
+            }
+        }
+
+        // Stage 6: Setup Docker Network
+        stage('Setup Network') {
+            steps {
+                sh '''
+                    # Remove existing containers
+                    docker stop neww-backend neww-frontend || true
+                    docker rm neww-backend neww-frontend || true
+                    
+                    # Setup network
+                    docker network rm myapp-network || true
+                    docker network create myapp-network
+                '''
+            }
+        }
+
+        // Stage 7: Deploy Backend
+        stage('Deploy Backend') {
+            steps {
+                sh """
+                    docker run -d \
+                        --name neww-backend \
+                        --network myapp-network \
+                        --restart unless-stopped \
+                        -e MYSQL_USER=${MYSQL_USER} \
+                        -e MYSQL_PASSWORD=${MYSQL_PASSWORD} \
+                        -e MYSQL_HOST=${MYSQL_HOST} \
+                        -e MYSQL_PORT=${MYSQL_PORT} \
+                        -e MYSQL_DATABASE=${MYSQL_DATABASE} \
+                        -p 9092:9092 \
+                        ${BACKEND_IMAGE}
+                """
+            }
+        }
+
+        // Stage 8: Deploy Frontend
+        stage('Deploy Frontend') {
+            steps {
+                sh """
+                    docker run -d \
+                        --name neww-frontend \
+                        --network myapp-network \
+                        --restart unless-stopped \
+                        -p 9091:9091 \
+                        ${FRONTEND_IMAGE}
+                """
+            }
+        }
+
+        // Stage 9: Verify Deployment
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                    sleep 10
+                    if ! docker ps | grep -q neww-backend; then
+                        echo "Backend container failed to start"
+                        exit 1
+                    fi
+                    if ! docker ps | grep -q neww-frontend; then
+                        echo "Frontend container failed to start"
+                        exit 1
+                    fi
+                    echo "All containers are running successfully!"
+                '''
+            }
+        }
+    }
+
+    // Post-build actions
+    post {
+        always {
+            sh '''
+                # Cleanup
+                docker images | grep -E 'neww-' | grep -v "$(docker ps --format '{{.Image}}')" | awk '{print $1":"$2}' | xargs -r docker rmi -f
+                docker image prune -f
+                
+                # Status
+                echo "Current images:"
+                docker images
+                echo "Running containers:"
+                docker ps
+            '''
+            cleanWs()
+        }
+        success {
+            echo 'Deployment completed successfully!'
+        }
+        failure {
+            echo 'Deployment failed!'
+            sh '''
+                docker logs neww-backend > backend-failure.log || true
+                docker logs neww-frontend > frontend-failure.log || true
+            '''
+        }
+    }
+}
