@@ -12,7 +12,7 @@ pipeline {
         MYSQL_HOST = '13.201.97.65'
         MYSQL_PORT = '3306'
         MYSQL_DATABASE = 'blog_app_apis'
-    }
+    } 
 
     stages {
         // Stage 1: Code Checkout
